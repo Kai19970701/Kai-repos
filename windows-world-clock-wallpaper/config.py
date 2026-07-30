@@ -4,10 +4,10 @@
 - 修改 CITIES 列表即可增删/调整显示的城市。
     - tz 必须是合法的 IANA 时区名
     - lat/lon 是城市的地理坐标（十进制度），用于在世界地图上定位光点
-    - label_dx / label_dy 用于微调该城市文字标签相对于光点的偏移（像素），
-      避免相邻城市（如伦敦/巴黎）的文字互相重叠
-    - anchor 是标签文字的对齐方式（tkinter anchor："w" 靠左对齐、"e" 靠右对齐等）
-- 修改 THEME 调整颜色（暗色地图主题）。
+    - label_dx / label_dy 用于微调该城市文字标签相对于光点的偏移（像素，
+      按 1920x1080 画布设计），避免相邻城市（如伦敦/巴黎）的文字互相重叠
+    - anchor 是标签文字的对齐方式："w" 标签在光点右侧、"e" 标签在光点左侧
+- 修改 THEME 调整颜色 / 字号（暗色地图主题）。
 """
 
 CITIES = [
@@ -30,9 +30,6 @@ CITIES = [
     {"city": "悉尼", "en": "Sydney", "tz": "Australia/Sydney",
      "lat": -33.87, "lon": 151.21, "label_dx": 14, "label_dy": -4, "anchor": "w"},
 ]
-
-# 中文星期缩写，index 0 = 周一 (与 datetime.weekday() 对齐)
-WEEKDAYS_CN = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
 
 # 地图可视纬度范围（裁掉大部分南极冰盖，让有人居住的陆地占满屏幕）
 MAP_LAT_MIN = -58.0
@@ -60,11 +57,12 @@ THEME = {
     "label_border": "#28324c",
     # 顶角信息条
     "header_color": "#5b6478",
-    # 字体（Windows 上建议使用系统自带字体）
-    "font_city": ("Microsoft YaHei UI", 10, "bold"),
-    "font_time": ("Consolas", 12, "bold"),
-    "font_header": ("Microsoft YaHei UI", 11),
+    # 字号（单位：像素，按 1920x1080 画布设计；分辨率不同会按比例缩放画布本身）
+    "font_city_size": 15,
+    "font_time_size": 17,
 }
 
-# 刷新间隔（毫秒）
-TICK_MS = 1000
+# 壁纸刷新间隔（秒）。因为是「真·系统壁纸」而不是实时窗口，刷新太频繁只会
+# 增加闪烁和磁盘写入，秒级跳动没有意义 —— 时间只显示到分钟，20~30 秒刷新
+# 一次足够让分钟数及时更新。
+REFRESH_SECONDS = 20

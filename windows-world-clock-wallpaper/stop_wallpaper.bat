@@ -1,5 +1,17 @@
 @echo off
-REM 通过窗口标题定位并结束「世界时钟壁纸」进程（不会影响其它 Python 程序）
-powershell -NoProfile -Command ^
-  "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class W { [DllImport(\"user32.dll\")] public static extern IntPtr FindWindow(string c, string t); [DllImport(\"user32.dll\")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid); }'; $h=[W]::FindWindow($null,'World Clock Wallpaper'); if ($h -ne [IntPtr]::Zero) { $procId=0; [W]::GetWindowThreadProcessId($h, [ref]$procId); Stop-Process -Id $procId -Force; Write-Host '已停止世界时钟壁纸进程。' } else { Write-Host '未找到正在运行的世界时钟壁纸。' }"
+REM 停止世界时钟地图壁纸进程，并把桌面壁纸恢复成之前的样子
+setlocal
+
+set "PID_FILE=%~dp0state\wallpaper.pid"
+
+if exist "%PID_FILE%" (
+  set /p WCW_PID=<"%PID_FILE%"
+  taskkill /F /PID %WCW_PID% >nul 2>nul
+  del /f /q "%PID_FILE%" >nul 2>nul
+  echo 已停止世界时钟地图壁纸进程（PID %WCW_PID%）。
+) else (
+  echo 未找到正在运行的世界时钟地图壁纸（没有 pid 文件），可能本来就没在运行。
+)
+
+python "%~dp0restore_wallpaper.py"
 pause
