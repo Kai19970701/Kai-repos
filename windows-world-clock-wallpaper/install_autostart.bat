@@ -1,9 +1,14 @@
 @echo off
-REM 将「世界时钟地图壁纸」添加到开机自启动
-REM 做法：把 pythonw.exe 的绝对路径解析出来，直接写进一个放在「启动」文件夹里的
-REM       .vbs 脚本，登录时由 wscript.exe 静默执行——不依赖开机那一刻 PATH 是否
-REM       已经生效（这正是之前版本自启动没反应的根本原因），也不经过容易出错的
-REM       PowerShell 嵌套引号。
+REM Add World Clock Map Wallpaper to Windows startup.
+REM Resolves the absolute path to pythonw.exe and writes it directly into a
+REM .vbs script placed in the Startup folder (runs silently via wscript.exe
+REM at logon). This avoids depending on PATH being ready at logon time, and
+REM avoids fragile nested PowerShell quoting.
+REM
+REM NOTE: This file intentionally uses plain ASCII text only. Windows batch
+REM files are parsed using the console's active code page (often GBK/936 on
+REM Simplified Chinese Windows), and UTF-8 non-ASCII text can get misread
+REM and corrupt command parsing. Keep this file ASCII-only.
 setlocal enabledelayedexpansion
 
 set "SCRIPT_DIR=%~dp0"
@@ -23,14 +28,15 @@ if not defined PYTHONW_PATH (
 )
 
 if not defined PYTHONW_PATH (
-    echo [错误] 没有找到 pythonw.exe / python.exe。
-    echo 请确认已安装 Python，且安装时勾选了 "Add python.exe to PATH"，
-    echo 然后重新打开一个新的命令行窗口再运行本脚本（新窗口才会读到最新的 PATH）。
+    echo [ERROR] Could not find pythonw.exe / python.exe.
+    echo Make sure Python is installed and "Add python.exe to PATH" was
+    echo checked during installation, then open a NEW command prompt
+    echo window (so it picks up the updated PATH) and run this again.
     pause
     exit /b 1
 )
 
-echo 找到 Python 解释器：!PYTHONW_PATH!
+echo Found Python interpreter: !PYTHONW_PATH!
 
 if not exist "%STARTUP_DIR%" mkdir "%STARTUP_DIR%"
 
@@ -39,19 +45,20 @@ echo objShell.Run """!PYTHONW_PATH!"" ""%WALLPAPER_SCRIPT%""", 0, False >> "%AUT
 
 if exist "%AUTOSTART_VBS%" (
     echo.
-    echo 已在开机启动文件夹创建：
+    echo Created startup script:
     echo   %AUTOSTART_VBS%
-    echo 实际会静默运行：
+    echo It will silently run:
     echo   !PYTHONW_PATH! "%WALLPAPER_SCRIPT%"
     echo.
-    echo 注意：Windows 的「启动」文件夹里的项目只在你【登录】时触发一次——
-    echo 必须完整注销后重新登录、或重启电脑才能测试效果；
-    echo 单纯锁屏/解锁、或从睡眠中唤醒，都不会重新触发它。
+    echo NOTE: Windows only runs Startup-folder items when you SIGN IN.
+    echo You must fully sign out and back in (or restart) to test this -
+    echo locking/unlocking the screen or waking from sleep will NOT
+    echo trigger it again.
     echo.
-    echo 如需取消自启动，请运行 uninstall_autostart.bat
+    echo To remove autostart later, run uninstall_autostart.bat
     echo.
 ) else (
-    echo [错误] 写入启动脚本失败，请检查该目录是否有写入权限：
+    echo [ERROR] Failed to write the startup script. Check write access to:
     echo   %STARTUP_DIR%
 )
 pause
