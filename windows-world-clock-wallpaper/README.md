@@ -78,12 +78,25 @@ wscript run_wallpaper.vbs
 install_autostart.bat
 ```
 
-会在「启动」文件夹里创建一个指向 `run_wallpaper.vbs` 的快捷方式，下次登录
-时自动静默运行。取消自启动：
+它会用 `where pythonw` 解析出 Python 解释器的**绝对路径**，直接写进一个放在
+Windows「启动」文件夹里的 `WorldClockWallpaper.vbs`，登录时静默执行。取消
+自启动：
 
 ```powershell
 uninstall_autostart.bat
 ```
+
+**测试自启动时请注意**：
+- Windows 的「启动」文件夹只在你**登录**的那一刻触发一次，必须完整
+  「注销后重新登录」或「重启电脑」才能验证效果——单纯锁屏/解锁、或从睡眠
+  中唤醒都不会重新触发它，这是最容易误判"没生效"的地方。
+- 如果重启后桌面壁纸仍然没有变成地图，先双击一下
+  `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\WorldClockWallpaper.vbs`
+  这个文件本身，看看手动运行是否正常（正常的话桌面应该几秒内就变成地图）；
+  再去 `state\wallpaper.log` 里看有没有报错。
+- 如果是先装好 Python 才第一次运行 `install_autostart.bat` 却仍提示找不到
+  `pythonw.exe`，多半是当前命令行窗口的 PATH 还没刷新——重新打开一个新的
+  命令行窗口再试。
 
 ## 停止 / 恢复原来的壁纸
 
