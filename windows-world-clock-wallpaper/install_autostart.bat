@@ -1,9 +1,10 @@
 @echo off
-REM Add World Clock Map Wallpaper to Windows startup.
-REM Resolves the absolute path to pythonw.exe and writes it directly into a
-REM .vbs script placed in the Startup folder (runs silently via wscript.exe
-REM at logon). This avoids depending on PATH being ready at logon time, and
-REM avoids fragile nested PowerShell quoting.
+REM Add World Clock Map Wallpaper to Windows startup using Task Scheduler
+REM (a logon trigger), instead of the classic Startup folder. Task
+REM Scheduler is more reliable and, importantly, lets you check *why*
+REM something failed via "schtasks /Query /TN WorldClockMapWallpaper /V",
+REM which shows Last Run Time / Last Result - the Startup folder gives no
+REM such feedback at all when it silently fails.
 REM
 REM NOTE: This file intentionally uses plain ASCII text only. Windows batch
 REM files are parsed using the console's active code page (often GBK/936 on
@@ -12,9 +13,8 @@ REM and corrupt command parsing. Keep this file ASCII-only.
 setlocal enabledelayedexpansion
 
 set "SCRIPT_DIR=%~dp0"
-set "STARTUP_DIR=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup"
-set "AUTOSTART_VBS=%STARTUP_DIR%\WorldClockWallpaper.vbs"
 set "WALLPAPER_SCRIPT=%SCRIPT_DIR%wallpaper.py"
+set "TASK_NAME=WorldClockMapWallpaper"
 
 set "PYTHONW_PATH="
 for /f "delims=" %%P in ('where pythonw 2^>nul') do (
@@ -38,27 +38,36 @@ if not defined PYTHONW_PATH (
 
 echo Found Python interpreter: !PYTHONW_PATH!
 
-if not exist "%STARTUP_DIR%" mkdir "%STARTUP_DIR%"
+REM Remove any leftover Startup-folder entry from an older version of this
+REM installer, so there is only ever one autostart mechanism active.
+set "STARTUP_DIR=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup"
+del /f /q "%STARTUP_DIR%\WorldClockWallpaper.vbs" 2>nul
+del /f /q "%STARTUP_DIR%\WorldClockWallpaper.lnk" 2>nul
 
-echo Set objShell = CreateObject("WScript.Shell") > "%AUTOSTART_VBS%"
-echo objShell.Run """!PYTHONW_PATH!"" ""%WALLPAPER_SCRIPT%""", 0, False >> "%AUTOSTART_VBS%"
+schtasks /Create /TN "%TASK_NAME%" /SC ONLOGON /RL LIMITED /F ^
+  /TR "\"!PYTHONW_PATH!\" \"%WALLPAPER_SCRIPT%\""
 
-if exist "%AUTOSTART_VBS%" (
+if %ERRORLEVEL% NEQ 0 (
     echo.
-    echo Created startup script:
-    echo   %AUTOSTART_VBS%
-    echo It will silently run:
-    echo   !PYTHONW_PATH! "%WALLPAPER_SCRIPT%"
-    echo.
-    echo NOTE: Windows only runs Startup-folder items when you SIGN IN.
-    echo You must fully sign out and back in (or restart) to test this -
-    echo locking/unlocking the screen or waking from sleep will NOT
-    echo trigger it again.
-    echo.
-    echo To remove autostart later, run uninstall_autostart.bat
-    echo.
-) else (
-    echo [ERROR] Failed to write the startup script. Check write access to:
-    echo   %STARTUP_DIR%
+    echo [ERROR] schtasks failed to create the task - see the error above.
+    pause
+    exit /b 1
 )
+
+echo.
+echo Created scheduled task "%TASK_NAME%" ^(trigger: at log on^).
+echo It will silently run:
+echo   !PYTHONW_PATH! "%WALLPAPER_SCRIPT%"
+echo.
+echo NOTE: this only runs on your NEXT sign-in (log off + log back in, or
+echo restart the PC). Locking/unlocking or waking from sleep will not
+echo trigger it.
+echo.
+echo To check whether it actually ran after your next sign-in, run:
+echo   schtasks /Query /TN "%TASK_NAME%" /V /FO LIST
+echo and look at "Last Run Time" and "Last Result" (0 = success).
+echo You can also check state\wallpaper.log for details.
+echo.
+echo To remove autostart later, run uninstall_autostart.bat
+echo.
 pause

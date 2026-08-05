@@ -78,22 +78,35 @@ wscript run_wallpaper.vbs
 install_autostart.bat
 ```
 
-它会用 `where pythonw` 解析出 Python 解释器的**绝对路径**，直接写进一个放在
-Windows「启动」文件夹里的 `WorldClockWallpaper.vbs`，登录时静默执行。取消
-自启动：
+它会用 `where pythonw` 解析出 Python 解释器的**绝对路径**，然后通过 Windows
+**任务计划程序（Task Scheduler）** 创建一个「登录时触发」的任务
+`WorldClockMapWallpaper`（不再使用老版本的"启动"文件夹方式）。取消自启动：
 
 ```powershell
 uninstall_autostart.bat
 ```
 
+选用任务计划程序而不是"启动"文件夹，主要是因为它**出问题时能查到原因**——
+"启动"文件夹里的项目一旦静默失败，你完全看不到任何反馈；而任务计划程序会
+记录每次触发的时间和结果，方便排查。
+
 **测试自启动时请注意**：
-- Windows 的「启动」文件夹只在你**登录**的那一刻触发一次，必须完整
-  「注销后重新登录」或「重启电脑」才能验证效果——单纯锁屏/解锁、或从睡眠
-  中唤醒都不会重新触发它，这是最容易误判"没生效"的地方。
-- 如果重启后桌面壁纸仍然没有变成地图，先双击一下
-  `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\WorldClockWallpaper.vbs`
-  这个文件本身，看看手动运行是否正常（正常的话桌面应该几秒内就变成地图）；
-  再去 `state\wallpaper.log` 里看有没有报错。
+- 「登录时触发」只在你**登录**的那一刻生效一次，必须完整「注销后重新登录」
+  或「重启电脑」才能验证效果——单纯锁屏/解锁、或从睡眠中唤醒都不会重新
+  触发它，这是最容易误判"没生效"的地方。
+- 下次登录之后，运行下面命令检查它到底有没有真的跑起来、结果如何：
+  ```powershell
+  schtasks /Query /TN "WorldClockMapWallpaper" /V /FO LIST
+  ```
+  重点看 `Last Run Time`（上次运行时间，应该接近你登录的时间）和
+  `Last Result`（上次运行结果，`0` 表示成功；非 0 说明启动失败，可以把这个
+  数字告诉我帮你排查）。
+- 也可以直接在「任务计划程序」图形界面里找到这个任务
+  （计算机管理 / `taskschd.msc` -> 任务计划程序库），右键"运行"可以立即
+  手动触发一次，不用等重启，方便确认命令本身是否正确。
+- 同时也去 `state\wallpaper.log` 里看有没有报错——如果这个文件在你上次
+  登录之后完全没有新内容，说明任务根本没被触发（比如被安全软件拦截）；如果
+  有新内容但报错，那是 Python 脚本自身的问题，把报错内容发给我即可。
 - 如果是先装好 Python 才第一次运行 `install_autostart.bat` 却仍提示找不到
   `pythonw.exe`，多半是当前命令行窗口的 PATH 还没刷新——重新打开一个新的
   命令行窗口再试。
