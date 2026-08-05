@@ -78,13 +78,19 @@ wscript run_wallpaper.vbs
 install_autostart.bat
 ```
 
-它会用 `where pythonw` 解析出 Python 解释器的**绝对路径**，然后通过 Windows
-**任务计划程序（Task Scheduler）** 创建一个「登录时触发」的任务
-`WorldClockMapWallpaper`（不再使用老版本的"启动"文件夹方式）。取消自启动：
+这个 `.bat` 只是个两行的小外壳，实际逻辑在 `install_autostart.py` 里：找到
+Python 解释器的**绝对路径**，然后通过 Windows **任务计划程序（Task
+Scheduler）** 创建一个「登录时触发」的任务 `WorldClockMapWallpaper`（不再
+使用"启动"文件夹方式）。取消自启动：
 
 ```powershell
 uninstall_autostart.bat
 ```
+
+（这部分逻辑之所以放在 Python 里而不是纯批处理脚本里，是因为反复踩到
+`cmd.exe` 解析批处理文件时的各种坑——嵌套引号、控制台代码页等。用 Python
+的 `subprocess` 传参数列表，Windows 会自动处理好带空格路径的引号，不需要
+手工拼接命令行字符串。）
 
 选用任务计划程序而不是"启动"文件夹，主要是因为它**出问题时能查到原因**——
 "启动"文件夹里的项目一旦静默失败，你完全看不到任何反馈；而任务计划程序会
